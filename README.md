@@ -1,7 +1,8 @@
-# unnamed_email_client
+# blatherskite
 
-simple graphical email client WITH BUILT IN HTTP PROXY
+Simple graphical email client WITH BUILT IN HTTP PROXY.
 
-is it really that hard? we find out.
+Is it really that hard? We find out.
 
- protocols: IMAPS, SMTP
+protocols: IMAPS, SMTP
+

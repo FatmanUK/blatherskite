@@ -1,0 +1,18 @@
+CFLAGS = -std=c++14 -fPIC
+ifeq (@(NDEBUG),1)
+	CFLAGS += -DNDEBUG -s
+else
+	CFLAGS += -g
+endif
+
+LIBS = -lstdc++ -ldl
+
+P_OPTS = -shared
+
+:foreach *.cc |> gcc $(CFLAGS) -c %f -o %o |> %B.o
+:main.o |> gcc %f -o %o $(LFLAGS) $(LIBS) |> ../bin/blatherskite
+:mailbox.o |> gcc %f $(P_OPTS) -o %o $(LFLAGS) $(LIBS) |> ../bin/plugins/%B.so
+:rolodex.o |> gcc %f $(P_OPTS) -o %o $(LFLAGS) $(LIBS) |> ../bin/plugins/%B.so
+:calendar.o |> gcc %f $(P_OPTS) -o %o $(LFLAGS) $(LIBS) |> ../bin/plugins/%B.so
+:notebook.o |> gcc %f $(P_OPTS) -o %o $(LFLAGS) $(LIBS) |> ../bin/plugins/%B.so
+
