@@ -3,13 +3,16 @@
 
 #include "dirent.h"
 #include "dlfcn.h"
+#include "signal.h"
+
+#include "fascia.hh"
 
 using std::cerr;
 using std::endl;
 using std::vector;
 using std::string;
 
-bool ends_with(std::string &haystack, std::string needle) {
+bool ends_with(string &haystack, string needle) {
 	if (haystack.length() < needle.length()) {
 		return false;
 	}
@@ -38,28 +41,18 @@ vector<string> enumerate_plugins(string &plugins_dir) {
 	return rv;
 }
 
-class Fascia {
-	typedef bool (*fnstart)();
-	typedef bool (*fnupdate)();
-	typedef bool (*fnstop)();
-	private:
-		vector<string> plugins;
-		vector<void *> handles;
-		vector<void *> updates;
-	public:
-		Fascia(vector<string> &);
-		~Fascia();
-		bool start(string &);
-		bool update();
-		bool stop();
-};
+Fascia *Fascia::self{nullptr};
 
-Fascia::Fascia(vector<string> &p) : plugins{p} { }
+Fascia::Fascia(vector<string> &p) : plugins{p}, handles{}, updates{}, self_destruct{false} {
+	self = this;
+}
 
 Fascia::~Fascia() { }
 
 bool Fascia::start(string &plugins_dir) {
 	void *ptr{nullptr};
+	signal(SIGINT, Fascia::handle_signal);
+	ui_start();
 	for (auto &p : plugins) {
 		ptr = dlopen((plugins_dir + "/" + p).c_str(), RTLD_NOW);
 		if (ptr == nullptr) return false;
@@ -68,8 +61,7 @@ bool Fascia::start(string &plugins_dir) {
 	for (auto &h : handles) {
 		ptr = dlsym(h, "start");
 		if (ptr == nullptr) return false;
-		if (!(*(fnstart)ptr)()) return false;
-		// find update
+		if (!(*(fnstart)ptr)(this)) return false;
 		ptr = dlsym(h, "update");
 		if (ptr == nullptr) return false;
 		updates.push_back(ptr);
@@ -78,9 +70,11 @@ bool Fascia::start(string &plugins_dir) {
 }
 
 bool Fascia::update() {
+	if (self_destruct) return false;
 	for (auto &u : updates) {
 		if (!(*(fnupdate)u)()) return false;
 	}
+	ui_update();
 	return true;
 }
 
@@ -92,7 +86,51 @@ bool Fascia::stop() {
 		if (!(*(fnstop)ptr)()) return false;
 		dlclose(h);
 	}
+	ui_stop();
 	return true;
+}
+
+void Fascia::die() {
+	self_destruct = true;
+}
+
+void Fascia::reload() {
+}
+
+void Fascia::load_config() {
+}
+
+void Fascia::save_config() {
+}
+
+void Fascia::ui_start() {
+}
+
+void Fascia::ui_update() {
+}
+
+void Fascia::ui_stop() {
+}
+
+#define SIGHUP  1   /* Hangup the process */ 
+#define SIGINT  2   /* Interrupt the process */ 
+#define SIGQUIT 3   /* Quit the process */ 
+
+void Fascia::handle_signal(int s) {
+	if (self == nullptr) return;
+	switch (s) {
+		case SIGINT: {
+			self->die();
+		} break;
+		case SIGHUP: {
+			self->reload();
+		} break;
+		case SIGQUIT: {
+			self->die();
+		} break;
+		default: {
+		}
+	}
 }
 
 int main(int, char **) {
@@ -104,7 +142,9 @@ int main(int, char **) {
 	auto plugins = enumerate_plugins(plugins_dir);
 	Fascia f{plugins};
 	if (f.start(plugins_dir)) {
+		f.load_config();
 		while (f.update());
+		f.save_config();
 		if (!f.stop()) {
 			// error
 		}
