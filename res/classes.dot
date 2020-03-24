@@ -1,0 +1,63 @@
+digraph hierarchy {
+	node[shape=none, margin=0, style=filled, fillcolor=gray95]
+	edge[dir=back, arrowtail=empty,]
+
+	Fascia[label=<<table border="0" cellspacing="0" cellpadding="3"><tr><td port="port1" border="1">Fascia</td></tr><tr><td port="port2" border="1">+ display_name</td></tr><tr><td port="port3" border="1">...</td></tr></table>>]
+	Plugin[label=<<table border="0" cellspacing="0" cellpadding="3"><tr><td port="port1" border="1">Plugin</td></tr><tr><td port="port2" border="1">...</td></tr><tr><td port="port3" border="1">+ refresh_view()<br/>...</td></tr></table>>]
+
+	Mailbox[label=<<table border="0" cellspacing="0" cellpadding="3"><tr><td port="port1" border="1">Mailbox</td></tr><tr><td port="port2" border="1">...</td></tr><tr><td port="port3" border="1">+ refresh_view()<br/>...</td></tr></table>>]
+	Email[label=<<table border="0" cellspacing="0" cellpadding="3"><tr><td port="port1" border="1">Email</td></tr><tr><td port="port2" border="1">...</td></tr><tr><td port="port3" border="1">+ refresh_view()<br/>...</td></tr></table>>]
+	Tag[label=<<table border="0" cellspacing="0" cellpadding="3"><tr><td port="port1" border="1">Tag</td></tr><tr><td port="port2" border="1">+ name<br />...</td></tr><tr><td port="port3" border="1">...</td></tr></table>>]
+
+	Rolodex[label=<<table border="0" cellspacing="0" cellpadding="3"><tr><td port="port1" border="1">Rolodex</td></tr><tr><td port="port2" border="1">...</td></tr><tr><td port="port3" border="1">+ refresh_view()<br/>...</td></tr></table>>]
+	Card[label=<<table border="0" cellspacing="0" cellpadding="3"><tr><td port="port1" border="1">Card</td></tr><tr><td port="port2" border="1">...</td></tr><tr><td port="port3" border="1">+ refresh_view()<br/>...</td></tr></table>>]
+
+	Calendar[label=<<table border="0" cellspacing="0" cellpadding="3"><tr><td port="port1" border="1">Calendar</td></tr><tr><td port="port2" border="1">...</td></tr><tr><td port="port3" border="1">+ refresh_view()<br/>...</td></tr></table>>]
+	Event[label=<<table border="0" cellspacing="0" cellpadding="3"><tr><td port="port1" border="1">Event</td></tr><tr><td port="port2" border="1">...</td></tr><tr><td port="port3" border="1">+ refresh_view()<br/>...</td></tr></table>>]
+
+	Notebook[label=<<table border="0" cellspacing="0" cellpadding="3"><tr><td port="port1" border="1">Notebook</td></tr><tr><td port="port2" border="1">...</td></tr><tr><td port="port3" border="1">+ refresh_view()<br/>...</td></tr></table>>]
+	Note[label=<<table border="0" cellspacing="0" cellpadding="3"><tr><td port="port1" border="1">Note</td></tr><tr><td port="port2" border="1">...</td></tr><tr><td port="port3" border="1">+ refresh_view()<br/>...</td></tr></table>>]
+	Task[label=<<table border="0" cellspacing="0" cellpadding="3"><tr><td port="port1" border="1">Task</td></tr><tr><td port="port2" border="1">...</td></tr><tr><td port="port3" border="1">+ refresh_view()<br/>...</td></tr></table>>]
+
+	Server[label=<<table border="0" cellspacing="0" cellpadding="3"><tr><td port="port1" border="1">Server</td></tr><tr><td port="port2" border="1">+ remote_address<br/>...</td></tr><tr><td port="port3" border="1">+ synchronise()<br/>...</td></tr></table>>]
+	Proxy[label=<<table border="0" cellspacing="0" cellpadding="3"><tr><td port="port1" border="1">Proxy</td></tr><tr><td port="port2" border="1">+ proxy_address<br/>...</td></tr><tr><td port="port3" border="1">+ connect()<br/>...</td></tr></table>>]
+	Archive[label=<<table border="0" cellspacing="0" cellpadding="3"><tr><td port="port1" border="1">Archive</td></tr><tr><td port="port2" border="1">...</td></tr><tr><td port="port3" border="1">+ serialise()<br/>...</td></tr></table>>]
+	Database[label=<<table border="0" cellspacing="0" cellpadding="3"><tr><td port="port1" border="1">Database</td></tr><tr><td port="port2" border="1">...</td></tr><tr><td port="port3" border="1">+ move()<br/>...</td></tr></table>>]
+
+	Plugin->Calendar
+	Plugin->Mailbox
+	Plugin->Rolodex
+	Plugin->Notebook
+
+	Fascia->Plugin[arrowhead=vee, dir=forward] # uses
+
+	Fascia->Calendar[arrowtail=odiamond, headlabel="* "]
+	Fascia->Rolodex [arrowtail=odiamond, headlabel="*  "]
+	Fascia->Mailbox [arrowtail=odiamond, headlabel="*"]
+	Fascia->Notebook[arrowtail=odiamond, headlabel="*   "]
+
+	Calendar->Archive[arrowtail=odiamond, taillabel="*    "]
+	Calendar->Server [arrowtail=diamond]
+	Calendar->Event  [arrowtail=odiamond, headlabel="*"]
+
+	Rolodex->Archive[arrowtail=odiamond, taillabel="*  "]
+	Rolodex->Server [arrowtail=diamond]
+	Rolodex->Card   [arrowtail=odiamond, headlabel="*"]
+
+	Mailbox->Archive[arrowtail=odiamond, taillabel="*  "]
+	Mailbox->Server [arrowtail=diamond]
+	Mailbox->Email  [arrowtail=odiamond, headlabel="*"]
+
+	# maybe allow Tags on Cards, Events, Tasks and Notes? might make the diagram a bit complicated...
+	Email->Tag[arrowtail=none, headlabel="*", taillabel="*"] # association, many-many link
+
+	Notebook->Archive[arrowtail=odiamond, taillabel="*"]
+	Notebook->Server [arrowtail=diamond]
+	Notebook->Note   [arrowtail=odiamond, headlabel="*"]
+	Notebook->Task   [arrowtail=odiamond, headlabel="*"]
+
+	Archive->Database[arrowtail=diamond]
+
+	Server->Proxy[arrowtail=diamond] # has-a (component), 1:1 link
+}
+
