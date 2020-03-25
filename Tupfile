@@ -1,0 +1,7 @@
+:foreach src/*.cc	|> gcc @(CFLAGS) -c %f -o %o			|> %B.o
+:main.o			|> gcc %f -o %o @(LFLAGS) @(LIBS)		|> bin/@(PNAME)
+:mailbox.o		|> gcc %f @(P_OPTS) -o %o @(LFLAGS) @(LIBS)	|> bin/plugins/%B.so
+:rolodex.o		|> gcc %f @(P_OPTS) -o %o @(LFLAGS) @(LIBS)	|> bin/plugins/%B.so
+:calendar.o		|> gcc %f @(P_OPTS) -o %o @(LFLAGS) @(LIBS)	|> bin/plugins/%B.so
+:notebook.o		|> gcc %f @(P_OPTS) -o %o @(LFLAGS) @(LIBS)	|> bin/plugins/%B.so
+:foreach res/*.dot	|> dot -Tsvg %f >%o 				|> %B.svg
