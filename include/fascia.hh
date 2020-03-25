@@ -3,6 +3,8 @@
 #include <vector>
 #include <string>
 
+#include "gtk/gtk.h"
+
 class Fascia {
 	typedef bool (*fnstart)(void *);
 	typedef bool (*fnupdate)();
@@ -13,6 +15,8 @@ class Fascia {
 		std::vector<void *> handles;
 		std::vector<void *> updates;
 		bool self_destruct;
+		GtkApplication *app;
+		GtkWidget *window;
 	public:
 		Fascia(std::vector<std::string> &);
 		~Fascia();

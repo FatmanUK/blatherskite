@@ -1,11 +1,20 @@
 #include <iostream>
 #include <vector>
+#include <sstream>
+#include <system_error>
 
 #include "dirent.h"
 #include "dlfcn.h"
 #include "signal.h"
 
 #include "fascia.hh"
+
+#define SIGHUP  1   /* Hangup the process */ 
+#define SIGINT  2   /* Interrupt the process */ 
+#define SIGQUIT 3   /* Quit the process */ 
+
+#define THROW_IF_FALSE(c, m) if ((c) == false) \
+throw_custom((m), __FILE__, __LINE__, __FUNCTION__)
 
 // Standard stringizing macros.
 #define XSTR(s) STR(s)
@@ -15,6 +24,18 @@ using std::cerr;
 using std::endl;
 using std::vector;
 using std::string;
+using std::ostringstream;
+using std::runtime_error;
+using std::exception;
+
+void throw_custom(string err, string file, int line, string func) {
+	ostringstream ostr{};
+	ostr << err;
+	ostr << " at ";
+	ostr << file << ":" << line << " (";
+	ostr << func << " function)";
+	throw runtime_error(ostr.str());
+}
 
 void expand_bash_tilde(string &path) {
 	// expand the bash "~" filesystem mark in the passed path
@@ -68,7 +89,9 @@ vector<string> enumerate_plugins(string &plugins_dir) {
 
 Fascia *Fascia::self{nullptr};
 
-Fascia::Fascia(vector<string> &p) : plugins{p}, handles{}, updates{}, self_destruct{false} {
+Fascia::Fascia(vector<string> &p) : plugins{p}, handles{}, updates{},
+				self_destruct{false}, app{nullptr},
+				window{nullptr} {
 	self = this;
 }
 
@@ -129,17 +152,22 @@ void Fascia::save_config() {
 }
 
 void Fascia::ui_start() {
+	int num_args = 0;
+	char *args = nullptr;
+	char **argptr = &args;
+	gtk_init(&num_args, &argptr);
+	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_widget_show_all(window);
 }
 
 void Fascia::ui_update() {
+	// apparently not
+	//self_destruct = 
+	gtk_main_iteration_do(FALSE); // update gtk, nonblocking
 }
 
 void Fascia::ui_stop() {
 }
-
-#define SIGHUP  1   /* Hangup the process */ 
-#define SIGINT  2   /* Interrupt the process */ 
-#define SIGQUIT 3   /* Quit the process */ 
 
 void Fascia::handle_signal(int s) {
 	if (self == nullptr) return;
@@ -164,18 +192,22 @@ int main(int, char **) {
 #endif
 	string plugins_dir{XSTR(PLUGINS_DIR)};
 	expand_bash_tilde(plugins_dir);
+#ifndef NDEBUG
 	cerr << "Looking for plugins in: " << plugins_dir << endl;
-	auto plugins = enumerate_plugins(plugins_dir);
-	Fascia f{plugins};
-	if (f.start(plugins_dir)) {
+#endif
+	try {
+		auto plugins = enumerate_plugins(plugins_dir);
+		Fascia f{plugins};
+		bool status = f.start(plugins_dir);
+		THROW_IF_FALSE(status, "Failed to start fascia");
 		f.load_config();
 		while (f.update());
 		f.save_config();
-		if (!f.stop()) {
-			// error
-		}
-	} else {
-		// error
+		status = f.stop();
+		THROW_IF_FALSE(status, "Failed to stop fascia");
+	} catch(exception &e) {
+		cerr << e.what() << endl;
+		return 1;
 	}
 	return 0;
 }
