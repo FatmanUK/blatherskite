@@ -2,6 +2,12 @@
 
 #include "fascia.hh"
 
+extern "C" {
+	bool start(void *);
+	bool update();
+	bool stop();
+}
+
 using std::string;
 using std::cerr;
 using std::endl;
@@ -9,7 +15,7 @@ using std::endl;
 const string PNAME = "mailbox";
 const string PVERSION = "v0.0.1";
 
-extern "C" bool start(void *f) {
+bool start(void *f) {
 	cerr << "Loading: " << PNAME << " " << PVERSION << "" << endl;
 #ifndef NDEBUG
 	cerr << PNAME << ": Start" << endl;
@@ -20,14 +26,14 @@ extern "C" bool start(void *f) {
 	return true;
 }
 
-extern "C" bool update() {
+bool update() {
 #ifndef NDEBUG
 //	cerr << PNAME << ": Update" << endl;
 #endif
 	return true;
 }
 
-extern "C" bool stop() {
+bool stop() {
 #ifndef NDEBUG
 	cerr << PNAME << ": Stop" << endl;
 #endif
