@@ -7,10 +7,35 @@
 
 #include "fascia.hh"
 
+// Standard stringizing macros.
+#define XSTR(s) STR(s)
+#define STR(s) #s
+
 using std::cerr;
 using std::endl;
 using std::vector;
 using std::string;
+
+void expand_bash_tilde(string &path) {
+	// expand the bash "~" filesystem mark in the passed path
+	auto iter = path.find('~');
+	if (iter == string::npos) {
+		return;
+	}
+	string new_path{};
+	if (path[iter+1] == '/') {
+		// just ~ by itself - get username
+		new_path = path.substr(0, iter);
+		new_path += "/home/";
+		new_path += getenv("USER");
+		new_path += path.substr(iter+1);
+		path = new_path;
+		return;
+	}
+	// ~ plus username
+	// TO DO
+	return;
+}
 
 bool ends_with(string &haystack, string needle) {
 	if (haystack.length() < needle.length()) {
@@ -134,11 +159,12 @@ void Fascia::handle_signal(int s) {
 }
 
 int main(int, char **) {
-	string plugins_dir{"/usr/lib/blatherskite"};
 #ifndef NDEBUG
-	plugins_dir = "/home/fatman/blatherskite/build-debug/bin/plugins";
 	cerr << "DEBUG build" << endl;
 #endif
+	string plugins_dir{XSTR(PLUGINS_DIR)};
+	expand_bash_tilde(plugins_dir);
+	cerr << "Looking for plugins in: " << plugins_dir << endl;
 	auto plugins = enumerate_plugins(plugins_dir);
 	Fascia f{plugins};
 	if (f.start(plugins_dir)) {
