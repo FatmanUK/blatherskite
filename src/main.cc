@@ -90,7 +90,7 @@ vector<string> enumerate_plugins(string &plugins_dir) {
 Fascia *Fascia::self{nullptr};
 
 Fascia::Fascia(vector<string> &p) : plugins{p}, handles{}, updates{},
-				self_destruct{false}, app{nullptr},
+				self_destruct{false}, /*app{nullptr},*/
 				window{nullptr} {
 	self = this;
 }
@@ -157,13 +157,19 @@ void Fascia::ui_start() {
 	char **argptr = &args;
 	gtk_init(&num_args, &argptr);
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_title(GTK_WINDOW(window), "Bob");
+	gtk_window_set_default_size(GTK_WINDOW(window), 100, 100);
+	g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), 0);
+	button = gtk_button_new_with_label("Click me!");
+	gtk_container_add(GTK_CONTAINER(window), button);
 	gtk_widget_show_all(window);
 }
 
 void Fascia::ui_update() {
+	// kill this on window close
 	// apparently not
-	//self_destruct = 
-	gtk_main_iteration_do(FALSE); // update gtk, nonblocking
+	self_destruct = gtk_main_iteration_do(gtk_false()); // update gtk, nonblocking
+	cerr << "quit: " << std::boolalpha << self_destruct << endl;
 }
 
 void Fascia::ui_stop() {

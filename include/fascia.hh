@@ -15,8 +15,8 @@ class Fascia {
 		std::vector<void *> handles;
 		std::vector<void *> updates;
 		bool self_destruct;
-		GtkApplication *app;
 		GtkWidget *window;
+		GtkWidget *button;
 	public:
 		Fascia(std::vector<std::string> &);
 		~Fascia();
