@@ -152,6 +152,7 @@ void Fascia::save_config() {
 }
 
 void Fascia::ui_start() {
+/*
 	int num_args = 0;
 	char *args = nullptr;
 	char **argptr = &args;
@@ -163,13 +164,19 @@ void Fascia::ui_start() {
 	button = gtk_button_new_with_label("Click me!");
 	gtk_container_add(GTK_CONTAINER(window), button);
 	gtk_widget_show_all(window);
+*/
 }
 
 void Fascia::ui_update() {
+/*
 	// kill this on window close
 	// apparently not
 	self_destruct = gtk_main_iteration_do(gtk_false()); // update gtk, nonblocking
 	cerr << "quit: " << std::boolalpha << self_destruct << endl;
+*/
+	if (fltk::ready()) {
+		fltk::check();
+	}
 }
 
 void Fascia::ui_stop() {

@@ -4,4 +4,5 @@
 :rolodex.o		|> gcc %f @(P_OPTS) -o %o @(LFLAGS) @(LIBS)	|> bin/plugins/%B.so
 :calendar.o		|> gcc %f @(P_OPTS) -o %o @(LFLAGS) @(LIBS)	|> bin/plugins/%B.so
 :notebook.o		|> gcc %f @(P_OPTS) -o %o @(LFLAGS) @(LIBS)	|> bin/plugins/%B.so
-:foreach res/*.dot	|> dot -Tsvg %f >%o 				|> %B.svg
+:foreach res/*.dot	|> dot -Tsvg %f >%o 				|> res/%B.svg
+:foreach res/*.dot	|> dot -Tpng %f >%o 				|> res/%B.png
