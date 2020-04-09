@@ -38,6 +38,7 @@ class UiPimpl {
 		unique_ptr<Fl_Button> btn_quit;
 		unique_ptr<Fl_Tabs> tabs;
 		std::vector<unique_ptr<Fl_Group>> tabgroups;
+//		unique_ptr<Fl_Group> noresize;
 	public:
 		UiPimpl(std::vector<std::string> &);
 		~UiPimpl();
@@ -141,10 +142,13 @@ bool UiPimpl::start(string &plugins_dir) {
 	void *ptr{nullptr};
 	signal(SIGINT, UiPimpl::handle_signal);
 	// Start the main UI.
-	win = make_unique<Fl_Window>(800, 600, "Blatherskite");
+	win = make_unique<Fl_Window>(800, 600, "blatherskite");
+	win->border(true);
+	win->size_range(20, 20, 1900, 1200, 1, 1); // fixes the float issue :) 
 	tabs = make_unique<Fl_Tabs>(10, 10, 780, 580);
 	tabs->callback(UiPimpl::callback_tabs);
 	tabs->user_data(this);
+	win->resizable(tabs.get()); // window resizes tabs
 	// Load main plugins.
 	for (auto &p : plugins) {
 		// locate functions
@@ -182,9 +186,14 @@ bool UiPimpl::start(string &plugins_dir) {
 	}
 	// finished adding tabs
 	tabs->end();
+//	noresize = make_unique<Fl_Group>(720, 550, 70, 40);
 	btn_quit = make_unique<Fl_Button>(720, 550, 70, 40, "Quit");
 	btn_quit->callback(UiPimpl::callback_quit);
 	btn_quit->user_data(this);
+//	btn_quit->resize(0);
+//	noresize->resizable(0); // never resize button
+//	noresize->end();
+//	btn_quit->show();
 	win->end();
 	win->show();
 	callback_tabs(reinterpret_cast<Fl_Widget *>(tabs.get()), nullptr);
@@ -263,7 +272,9 @@ void UiPimpl::save_config() {
 
 Fl_Group *UiPimpl::add_tab(const string &label) {
 	cerr << "Tab: " << label << endl;
-	return new Fl_Group(10, 10, 780, 540, label.c_str());
+	auto t = new Fl_Group(10, 10, 780, 540, label.c_str());
+	tabs->resizable(t);
+	return t;
 }
 
 ////////////////////////////////////////////////////////////////////////
