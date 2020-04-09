@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 // These need to be defines so that __LINE__ and __FILE__ work.
 #define THROW_IF_FALSE(c, m) if ((c) == false) \
 	throw_custom((m), __FILE__, __LINE__, __FUNCTION__)
@@ -60,17 +62,11 @@ struct PluginHandles {
 	void *stop;
 };
 
-class Fl_Widget; // for the pointer in the callback below
+class UiPimpl;
 
 class Fascia {
-	typedef bool (*fnstart)(void *);
-	typedef bool (*fnupdate)();
-	typedef bool (*fnstop)();
 	private:
-		static Fascia *self;
-		std::vector<std::string> plugins;
-		std::vector<PluginHandles> plugin_handles;
-		bool self_destruct;
+		std::unique_ptr<UiPimpl> pimpl;
 	public:
 		Fascia(std::vector<std::string> &);
 		~Fascia();
@@ -79,10 +75,5 @@ class Fascia {
 		bool stop();
 		void die();
 		void reload();
-		void load_config();
-		void save_config();
-	private:
-		static void handle_signal(int);
-		static void callback_quit(Fl_Widget *, void *);
 };
 

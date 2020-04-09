@@ -52,9 +52,7 @@ int main(int, char **) {
 		Fascia f{plugins};
 		bool status = f.start(plugins_dir);
 		THROW_IF_FALSE(status, "Failed to start fascia");
-		f.load_config();
 		while (f.update());
-		f.save_config();
 		status = f.stop();
 		THROW_IF_FALSE(status, "Failed to stop fascia");
 	} catch(exception &e) {
