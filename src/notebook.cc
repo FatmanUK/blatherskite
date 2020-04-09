@@ -1,12 +1,6 @@
 #include <iostream>
 
-#include "fascia.hh"
-
-extern "C" {
-	bool start(void *);
-	bool update();
-	bool stop();
-}
+#include "api.hh"
 
 using std::string;
 using std::cerr;
@@ -20,6 +14,8 @@ bool start(void *) {
 #ifndef NDEBUG
 	cerr << PNAME << ": Start" << endl;
 #endif
+	test();
+	test2(PNAME);
 	return true;
 }
 

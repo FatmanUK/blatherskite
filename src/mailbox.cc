@@ -1,12 +1,6 @@
 #include <iostream>
 
-#include "fascia.hh"
-
-extern "C" {
-	bool start(void *);
-	bool update();
-	bool stop();
-}
+#include "api.hh"
 
 using std::string;
 using std::cerr;
@@ -23,6 +17,8 @@ bool start(void *f) {
 	auto fascia{reinterpret_cast<Fascia *>(f)};
 	// add ui bits to fascia f
 	// it will garbage collect
+	test();
+	test2(PNAME);
 	return true;
 }
 

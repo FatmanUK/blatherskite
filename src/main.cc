@@ -3,39 +3,14 @@
 #include <sstream>
 #include <system_error>
 
+#include "api.hh"
 #include "dirent.h"
-#include "dlfcn.h"
-#include "signal.h"
-
-#include "fascia.hh"
-
-#define SIGHUP  1   /* Hangup the process */ 
-#define SIGINT  2   /* Interrupt the process */ 
-#define SIGQUIT 3   /* Quit the process */ 
-
-#define THROW_IF_FALSE(c, m) if ((c) == false) \
-throw_custom((m), __FILE__, __LINE__, __FUNCTION__)
-
-// Standard stringizing macros.
-#define XSTR(s) STR(s)
-#define STR(s) #s
 
 using std::cerr;
 using std::endl;
 using std::vector;
 using std::string;
-using std::ostringstream;
-using std::runtime_error;
 using std::exception;
-
-void throw_custom(string err, string file, int line, string func) {
-	ostringstream ostr{};
-	ostr << err;
-	ostr << " at ";
-	ostr << file << ":" << line << " (";
-	ostr << func << " function)";
-	throw runtime_error(ostr.str());
-}
 
 void expand_bash_tilde(string &path) {
 	// expand the bash "~" filesystem mark in the passed path
@@ -85,118 +60,6 @@ vector<string> enumerate_plugins(string &plugins_dir) {
 		}
 	}
 	return rv;
-}
-
-Fascia *Fascia::self{nullptr};
-
-Fascia::Fascia(vector<string> &p) : plugins{p}, handles{}, updates{},
-				self_destruct{false}, /*app{nullptr},*/
-				window{nullptr} {
-	self = this;
-}
-
-Fascia::~Fascia() { }
-
-bool Fascia::start(string &plugins_dir) {
-	void *ptr{nullptr};
-	signal(SIGINT, Fascia::handle_signal);
-	ui_start();
-	for (auto &p : plugins) {
-		ptr = dlopen((plugins_dir + "/" + p).c_str(), RTLD_NOW);
-		if (ptr == nullptr) return false;
-		handles.push_back(ptr);
-	}
-	for (auto &h : handles) {
-		ptr = dlsym(h, "start");
-		if (ptr == nullptr) return false;
-		if (!(*(fnstart)ptr)(this)) return false;
-		ptr = dlsym(h, "update");
-		if (ptr == nullptr) return false;
-		updates.push_back(ptr);
-	}
-	return true;
-}
-
-bool Fascia::update() {
-	if (self_destruct) return false;
-	for (auto &u : updates) {
-		if (!(*(fnupdate)u)()) return false;
-	}
-	ui_update();
-	return true;
-}
-
-bool Fascia::stop() {
-	void *ptr{nullptr};
-	for (auto &h : handles) {
-		ptr = dlsym(h, "stop");
-		if (ptr == nullptr) return false;
-		if (!(*(fnstop)ptr)()) return false;
-		dlclose(h);
-	}
-	ui_stop();
-	return true;
-}
-
-void Fascia::die() {
-	self_destruct = true;
-}
-
-void Fascia::reload() {
-}
-
-void Fascia::load_config() {
-}
-
-void Fascia::save_config() {
-}
-
-void Fascia::ui_start() {
-/*
-	int num_args = 0;
-	char *args = nullptr;
-	char **argptr = &args;
-	gtk_init(&num_args, &argptr);
-	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_title(GTK_WINDOW(window), "Bob");
-	gtk_window_set_default_size(GTK_WINDOW(window), 100, 100);
-	g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), 0);
-	button = gtk_button_new_with_label("Click me!");
-	gtk_container_add(GTK_CONTAINER(window), button);
-	gtk_widget_show_all(window);
-*/
-}
-
-void Fascia::ui_update() {
-/*
-	// kill this on window close
-	// apparently not
-	self_destruct = gtk_main_iteration_do(gtk_false()); // update gtk, nonblocking
-	cerr << "quit: " << std::boolalpha << self_destruct << endl;
-*/
-	if (fltk::ready()) {
-		fltk::check();
-	}
-}
-
-void Fascia::ui_stop() {
-}
-
-void Fascia::handle_signal(int s) {
-	if (self == nullptr) return;
-	switch (s) {
-		case SIGINT: {
-			self->die();
-		} break;
-		case SIGHUP: {
-			self->reload();
-		} break;
-		case SIGQUIT: {
-			self->die();
-		} break;
-		default: {
-		}
-	}
 }
 
 int main(int, char **) {
