@@ -1,45 +1,15 @@
-#include <iostream>
-#include <vector>
-#include <sstream>
-#include <system_error>
-
 #include "api.hh"
+
 #include "dirent.h"
 
+#include <system_error>
+#include <iostream>
+
+using std::string;
+using std::vector;
+using std::exception;
 using std::cerr;
 using std::endl;
-using std::vector;
-using std::string;
-using std::exception;
-
-void expand_bash_tilde(string &path) {
-	// expand the bash "~" filesystem mark in the passed path
-	auto iter = path.find('~');
-	if (iter == string::npos) {
-		return;
-	}
-	string new_path{};
-	if (path[iter+1] == '/') {
-		// just ~ by itself - get username
-		new_path = path.substr(0, iter);
-		new_path += "/home/";
-		new_path += getenv("USER");
-		new_path += path.substr(iter+1);
-		path = new_path;
-		return;
-	}
-	// ~ plus username
-	// TO DO
-	return;
-}
-
-bool ends_with(string &haystack, string needle) {
-	if (haystack.length() < needle.length()) {
-		return false;
-	}
-	size_t pos = haystack.length() - needle.length();
-	return 0 == haystack.compare(pos, needle.length(), needle);
-}
 
 vector<string> enumerate_plugins(string &plugins_dir) {
 #ifdef _WIN32
@@ -72,6 +42,12 @@ int main(int, char **) {
 	cerr << "Looking for plugins in: " << plugins_dir << endl;
 #endif
 	try {
+		bool is_dir = path_is_extant_dir(plugins_dir);
+		THROW_IF_FALSE(is_dir, "Plugin dir " + plugins_dir + " not found");
+		bool can_read = dir_allows_read(plugins_dir);
+		THROW_IF_FALSE(can_read, "Plugin dir " + plugins_dir + " not readable");
+		bool can_exec = dir_allows_exec(plugins_dir);
+		THROW_IF_FALSE(can_exec, "Plugin dir " + plugins_dir + " not traversible");
 		auto plugins = enumerate_plugins(plugins_dir);
 		Fascia f{plugins};
 		bool status = f.start(plugins_dir);

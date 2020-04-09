@@ -15,6 +15,7 @@ bool start(void *) {
 	cerr << PNAME << ": Start" << endl;
 #endif
 	test();
+	test2(PNAME);
 	return true;
 }
 

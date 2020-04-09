@@ -2,20 +2,30 @@
 
 #include <iostream>
 #include <sstream>
+#include <system_error>
+#include <memory>
 
 #include "dlfcn.h"
 #include "signal.h"
+#include "sys/stat.h"
+#include "unistd.h" // access
+
+#include "FL/Fl.H"
+#include "FL/Fl_Window.H"
+#include "FL/Fl_Button.H"
 
 #define SIGHUP  1   /* Hangup the process */ 
 #define SIGINT  2   /* Interrupt the process */ 
 #define SIGQUIT 3   /* Quit the process */ 
 
+using std::string;
 using std::cerr;
 using std::endl;
-using std::vector;
-using std::string;
-using std::runtime_error;
 using std::ostringstream;
+using std::runtime_error;
+using std::vector;
+using std::unique_ptr;
+using std::make_unique;
 
 void throw_custom(string err, string file, int line, string func) {
 	ostringstream ostr{};
@@ -27,14 +37,62 @@ void throw_custom(string err, string file, int line, string func) {
 }
 
 void test() {
-	std::cout << "OI" << endl;
 	cerr << "Test success!" << endl;
 }
 
 void test2(std::string s) {
-	std::cout << "OI " << s << endl;
-	cerr << "Test success!" << endl;
+	cerr << "Test success " << s << "!" << endl;
 }
+
+void expand_bash_tilde(string &path) {
+	// expand the bash "~" filesystem mark in the passed path
+	auto iter = path.find('~');
+	if (iter == string::npos) {
+		return;
+	}
+	string new_path{};
+	if (path[iter+1] == '/') {
+		// just ~ by itself - get username
+		new_path = path.substr(0, iter);
+		new_path += "/home/";
+		new_path += getenv("USER");
+		new_path += path.substr(iter+1);
+		path = new_path;
+		return;
+	}
+	// ~ plus username
+	// TO DO
+	return;
+}
+
+bool ends_with(string &haystack, string needle) {
+	if (haystack.length() < needle.length()) {
+		return false;
+	}
+	size_t pos = haystack.length() - needle.length();
+	return 0 == haystack.compare(pos, needle.length(), needle);
+}
+
+bool path_is_extant_dir(string path) {
+	path += '/';
+	struct stat sb;
+	return stat(path.c_str(), &sb) == 0;
+}
+
+bool dir_allows_read(string path) {
+	return access(path.c_str(), R_OK) == 0;
+}
+
+bool dir_allows_write(string path) {
+	return access(path.c_str(), W_OK) == 0;
+}
+
+bool dir_allows_exec(string path) {
+	return access(path.c_str(), X_OK) == 0;
+}
+
+unique_ptr<Fl_Window> win{nullptr};
+unique_ptr<Fl_Button> quit{nullptr};
 
 Fascia *Fascia::self{nullptr}; // TO DO: make Singleton? RAII
 
@@ -47,7 +105,17 @@ Fascia::~Fascia() { }
 bool Fascia::start(string &plugins_dir) {
 	void *ptr{nullptr};
 	signal(SIGINT, Fascia::handle_signal);
-	ui_start();
+	// Start the main UI.
+	Fl_Window::default_xclass(nullptr);
+	win = make_unique<Fl_Window>(300, 200, "Testing");
+	win->begin();
+	quit = make_unique<Fl_Button>(10, 150, 70, 30, "Quit");
+	quit->callback(Fascia::callback_quit);
+	quit->user_data(this);
+	win->end();
+	win->set_non_modal();
+	win->show();
+	// Load main plugins.
 	for (auto &p : plugins) {
 		// locate functions
 		plugin_handles.emplace_back();
@@ -76,7 +144,7 @@ bool Fascia::update() {
 	for (auto &p : plugin_handles) {
 		THROW_IF_FALSE((*(fnupdate)p.update)(), string{"Failed to update plugin " + p.name});
 	}
-	ui_update();
+	Fl::check(); // Update UI.
 	return true;
 }
 
@@ -91,7 +159,7 @@ bool Fascia::stop() {
 		p.update = nullptr;
 		p.stop = nullptr;
 	}
-	ui_stop();
+	// Nothing to do to quit FLTK?
 	return true;
 }
 
@@ -108,35 +176,8 @@ void Fascia::load_config() {
 void Fascia::save_config() {
 }
 
-void Fascia::ui_start() {
-/*
-	int num_args = 0;
-	char *args = nullptr;
-	char **argptr = &args;
-	gtk_init(&num_args, &argptr);
-	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_title(GTK_WINDOW(window), "Bob");
-	gtk_window_set_default_size(GTK_WINDOW(window), 100, 100);
-	g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), 0);
-	button = gtk_button_new_with_label("Click me!");
-	gtk_container_add(GTK_CONTAINER(window), button);
-	gtk_widget_show_all(window);
-*/
-}
-
-void Fascia::ui_update() {
-/*
-	// kill this on window close
-	// apparently not
-	self_destruct = gtk_main_iteration_do(gtk_false()); // update gtk, nonblocking
-	cerr << "quit: " << std::boolalpha << self_destruct << endl;
-*/
-//	if (fltk::ready()) {
-//		fltk::check();
-//	}
-}
-
-void Fascia::ui_stop() {
+void Fascia::callback_quit(Fl_Widget *, void *d) {
+	reinterpret_cast<Fascia *>(d)->die();
 }
 
 void Fascia::handle_signal(int s) {

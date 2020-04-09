@@ -17,6 +17,8 @@ bool start(void *f) {
 	auto fascia{reinterpret_cast<Fascia *>(f)};
 	// add ui bits to fascia f
 	// it will garbage collect
+	test();
+	test2(PNAME);
 	return true;
 }
 

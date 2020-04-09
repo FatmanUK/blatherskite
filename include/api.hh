@@ -1,15 +1,18 @@
 #pragma once
 
+// These need to be defines so that __LINE__ and __FILE__ work.
 #define THROW_IF_FALSE(c, m) if ((c) == false) \
 	throw_custom((m), __FILE__, __LINE__, __FUNCTION__)
-
 #define THROW_IF_NULLPTR(c, m) if ((c) == nullptr) \
 	throw_custom((m), __FILE__, __LINE__, __FUNCTION__)
 
-// Standard stringizing macros.
+// Standard stringizing macros. Useful for defining strings in the build
+// system.
 #define XSTR(s) STR(s)
 #define STR(s) #s
 
+// Configure the compiler to export/import functions using the same
+// API header for plugins and the main program.
 #ifdef API
 	#ifdef _WIN32
 		#define APICALL __declspec(dllexport)
@@ -35,11 +38,18 @@
 #include <string>
 #include <vector>
 
-#include "FL/Fl.H"
-
+// Exported API functions.
 extern "C" {
 	APICALL void test();
 	APICALL void test2(std::string);
+	// message, file, line, function name
+	APICALL void throw_custom(std::string, std::string, int, std::string);
+	APICALL void expand_bash_tilde(std::string &);
+	APICALL bool ends_with(std::string &, std::string);
+	APICALL bool path_is_extant_dir(std::string);
+	APICALL bool dir_allows_read(std::string);
+	APICALL bool dir_allows_write(std::string);
+	APICALL bool dir_allows_exec(std::string);
 }
 
 struct PluginHandles {
@@ -49,6 +59,8 @@ struct PluginHandles {
 	void *update;
 	void *stop;
 };
+
+class Fl_Widget; // for the pointer in the callback below
 
 class Fascia {
 	typedef bool (*fnstart)(void *);
@@ -71,10 +83,6 @@ class Fascia {
 		void save_config();
 	private:
 		static void handle_signal(int);
-		void ui_start();
-		void ui_update();
-		void ui_stop();
+		static void callback_quit(Fl_Widget *, void *);
 };
-
-void throw_custom(std::string, std::string, int, std::string);
 
