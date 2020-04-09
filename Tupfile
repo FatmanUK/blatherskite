@@ -1,8 +1,13 @@
-:foreach src/*.cc	|> gcc @(CFLAGS) -c %f -o %o			|> %B.o
-:main.o			|> gcc %f -o %o @(LFLAGS) @(LIBS)		|> bin/@(PNAME)
-:mailbox.o		|> gcc %f @(P_OPTS) -o %o @(LFLAGS) @(LIBS)	|> bin/plugins/%B.so
-:rolodex.o		|> gcc %f @(P_OPTS) -o %o @(LFLAGS) @(LIBS)	|> bin/plugins/%B.so
-:calendar.o		|> gcc %f @(P_OPTS) -o %o @(LFLAGS) @(LIBS)	|> bin/plugins/%B.so
-:notebook.o		|> gcc %f @(P_OPTS) -o %o @(LFLAGS) @(LIBS)	|> bin/plugins/%B.so
-:foreach res/*.dot	|> dot -Tsvg %f >%o 				|> res/%B.svg
-:foreach res/*.dot	|> dot -Tpng %f >%o 				|> res/%B.png
+:foreach src/api/*.cc			|> gcc @(CFLAGS) -DAPI=1 -c %f -o %o		|> src/%B.o
+:foreach src/*.cc			|> gcc @(CFLAGS) -c %f -o %o			|> src/%B.o
+:foreach src/plugins/*.cc		|> gcc @(CFLAGS) -c %f -o %o			|> src/plugins/%B.o
+
+:src/main.o src/api.o			|> gcc %f -o %o @(LFLAGS) @(LIBS)		|> bin/@(PNAME)
+:src/plugins/mailbox.o  src/api.o	|> gcc %f @(P_OPTS) -o %o @(LFLAGS) @(LIBS)	|> bin/plugins/mailbox.so
+:src/plugins/calendar.o src/api.o	|> gcc %f @(P_OPTS) -o %o @(LFLAGS) @(LIBS)	|> bin/plugins/calendar.so
+:src/plugins/notebook.o src/api.o	|> gcc %f @(P_OPTS) -o %o @(LFLAGS) @(LIBS)	|> bin/plugins/notebook.so
+:src/plugins/rolodex.o  src/api.o	|> gcc %f @(P_OPTS) -o %o @(LFLAGS) @(LIBS)	|> bin/plugins/rolodex.so
+
+:foreach res/*.dot			|> dot -Tsvg %f >%o 				|> res/%B.svg
+:foreach res/*.dot			|> dot -Tpng %f >%o 				|> res/%B.png
+
