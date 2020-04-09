@@ -9,9 +9,8 @@
 #include "sys/stat.h"
 #include "unistd.h" // access
 
-#include "FL/Fl.H"
-#include "FL/Fl_Window.H"
 #include "FL/Fl_Button.H"
+#include "FL/Fl_Tabs.H"
 
 #define SIGHUP  1   /* Hangup the process */ 
 #define SIGINT  2   /* Interrupt the process */ 
@@ -25,6 +24,36 @@ using std::runtime_error;
 using std::vector;
 using std::unique_ptr;
 using std::make_unique;
+
+class UiPimpl {
+	typedef bool (*fnstart)(void *);
+	typedef bool (*fnupdate)();
+	typedef bool (*fnstop)();
+	private:
+		static UiPimpl *self;
+		bool self_destruct;
+		std::vector<std::string> plugins;
+		std::vector<PluginHandles> plugin_handles;
+		unique_ptr<Fl_Window> win;
+		unique_ptr<Fl_Button> btn_quit;
+		unique_ptr<Fl_Tabs> tabs;
+		std::vector<unique_ptr<Fl_Group>> tabgroups;
+	public:
+		UiPimpl(std::vector<std::string> &);
+		~UiPimpl();
+		bool start(string &);
+		bool update();
+		bool stop();
+		void die();
+		void reload();
+		Fl_Group *add_tab(const string &);
+	private:
+		static void handle_signal(int);
+		static void callback_quit(Fl_Widget *, void *);
+		static void callback_tabs(Fl_Widget *, void *);
+		void load_config();
+		void save_config();
+};
 
 void throw_custom(string err, string file, int line, string func) {
 	ostringstream ostr{};
@@ -43,11 +72,11 @@ void test2(std::string s) {
 	cerr << "Test success " << s << "!" << endl;
 }
 
-void expand_bash_tilde(string &path) {
+string expand_bash_tilde(string path) {
 	// expand the bash "~" filesystem mark in the passed path
 	auto iter = path.find('~');
 	if (iter == string::npos) {
-		return;
+		return path;
 	}
 	string new_path{};
 	if (path[iter+1] == '/') {
@@ -57,11 +86,11 @@ void expand_bash_tilde(string &path) {
 		new_path += getenv("USER");
 		new_path += path.substr(iter+1);
 		path = new_path;
-		return;
+		return path;
 	}
 	// ~ plus username
 	// TO DO
-	return;
+	return path;
 }
 
 bool ends_with(string &haystack, string needle) {
@@ -90,43 +119,9 @@ bool dir_allows_exec(string path) {
 	return access(path.c_str(), X_OK) == 0;
 }
 
-/*
-
-
-
-void Fascia::load_config() {
+Fl_Group *add_tab(void *ptr, const string &label) {
+	return reinterpret_cast<UiPimpl *>(ptr)->add_tab(label);
 }
-
-void Fascia::save_config() {
-}
-
-*/
-
-class UiPimpl {
-	typedef bool (*fnstart)(void *);
-	typedef bool (*fnupdate)();
-	typedef bool (*fnstop)();
-	private:
-		static UiPimpl *self;
-		bool self_destruct;
-		std::vector<std::string> plugins;
-		std::vector<PluginHandles> plugin_handles;
-		unique_ptr<Fl_Window> win;
-		unique_ptr<Fl_Button> btn_quit;
-	public:
-		UiPimpl(std::vector<std::string> &);
-		~UiPimpl();
-		bool start(string &);
-		bool update();
-		bool stop();
-		void die();
-		void reload();
-	private:
-		static void handle_signal(int);
-		static void callback_quit(Fl_Widget *, void *);
-		void load_config();
-		void save_config();
-};
 
 UiPimpl *UiPimpl::self{nullptr};
 
@@ -137,21 +132,19 @@ UiPimpl::UiPimpl(std::vector<std::string> &p)
 
 UiPimpl::~UiPimpl() { }
 
+// interesting fltk links
+// https://www.fltk.org/doc-2.0/html/group__themes.html#ga0
+// https://www.fltk.org/doc-1.3/classFl.html#a43e6e0bbbc03cad134d928d4edd48d1d
+// https://www.fltk.org/doc-1.3/group__fl__events.html
+
 bool UiPimpl::start(string &plugins_dir) {
 	void *ptr{nullptr};
 	signal(SIGINT, UiPimpl::handle_signal);
 	// Start the main UI.
-//	Fl_Window::default_xclass("dillo");
-	win = make_unique<Fl_Window>(300, 200, "Testing");
-	win->begin();
-	btn_quit = make_unique<Fl_Button>(10, 150, 70, 30, "Quit");
-	btn_quit->callback(UiPimpl::callback_quit);
-	btn_quit->user_data(this);
-	win->end();
-//	win->set_non_modal();
-	win->resizable();
-	win->position(0, 0);
-	win->show();
+	win = make_unique<Fl_Window>(800, 600, "Blatherskite");
+	tabs = make_unique<Fl_Tabs>(10, 10, 780, 580);
+	tabs->callback(UiPimpl::callback_tabs);
+	tabs->user_data(this);
 	// Load main plugins.
 	for (auto &p : plugins) {
 		// locate functions
@@ -184,9 +177,17 @@ bool UiPimpl::start(string &plugins_dir) {
 		// call start function
 		ptr = plugin_handles.back().start;
 		errmsg.str("");
-		errmsg << "Failed to start plugin "  << p;
+		errmsg << "Failed to start plugin " << p;
 		THROW_IF_FALSE((*(fnstart)ptr)(this), errmsg.str());
 	}
+	// finished adding tabs
+	tabs->end();
+	btn_quit = make_unique<Fl_Button>(720, 550, 70, 40, "Quit");
+	btn_quit->callback(UiPimpl::callback_quit);
+	btn_quit->user_data(this);
+	win->end();
+	win->show();
+	callback_tabs(reinterpret_cast<Fl_Widget *>(tabs.get()), nullptr);
 	//load_config();
 	return true;
 }
@@ -223,6 +224,12 @@ void UiPimpl::callback_quit(Fl_Widget *, void *d) {
 	reinterpret_cast<UiPimpl *>(d)->die();
 }
 
+void UiPimpl::callback_tabs(Fl_Widget *w, void *) {
+//	reinterpret_cast<UiPimpl *>(d)->die();
+	Fl_Tabs *t = reinterpret_cast<Fl_Tabs *>(w);
+	t->selection_color(FL_WHITE);
+}
+
 void UiPimpl::handle_signal(int s) {
 	if (self == nullptr) return;
 	switch (s) {
@@ -253,6 +260,13 @@ void UiPimpl::load_config() {
 
 void UiPimpl::save_config() {
 }
+
+Fl_Group *UiPimpl::add_tab(const string &label) {
+	cerr << "Tab: " << label << endl;
+	return new Fl_Group(10, 10, 780, 540, label.c_str());
+}
+
+////////////////////////////////////////////////////////////////////////
 
 Fascia::Fascia(std::vector<std::string> &p)
 		: pimpl{make_unique<UiPimpl>(p)} { }

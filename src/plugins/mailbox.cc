@@ -8,16 +8,16 @@ using std::endl;
 
 const string PNAME = "mailbox";
 const string PVERSION = "v0.0.1";
+const string TABNAME = "E-Mail";
 
-bool start(void *f) {
+Fl_Group *tab;
+
+bool start(void *ptr) {
 	cerr << "Loading: " << PNAME << " " << PVERSION << "" << endl;
-#ifndef NDEBUG
-	cerr << PNAME << ": Start" << endl;
-#endif
-	auto fascia{reinterpret_cast<Fascia *>(f)};
+	tab = add_tab(ptr, TABNAME);
 	// add ui bits to fascia f
 	// it will garbage collect
-	test();
+	tab->end();
 	test2(PNAME);
 	return true;
 }

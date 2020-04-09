@@ -8,13 +8,14 @@ using std::endl;
 
 const string PNAME = "notebook";
 const string PVERSION = "v0.0.1";
+const string TABNAME = "Notes";
 
-bool start(void *) {
+Fl_Group *tab;
+
+bool start(void *ptr) {
 	cerr << "Loading: " << PNAME << " " << PVERSION << "" << endl;
-#ifndef NDEBUG
-	cerr << PNAME << ": Start" << endl;
-#endif
-	test();
+	tab = add_tab(ptr, TABNAME);
+	tab->end();
 	test2(PNAME);
 	return true;
 }

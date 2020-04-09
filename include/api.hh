@@ -1,6 +1,11 @@
 #pragma once
 
 #include <memory>
+#include <string>
+#include <vector>
+
+#include "FL/Fl.H"
+#include "FL/Fl_Window.H"
 
 // These need to be defines so that __LINE__ and __FILE__ work.
 #define THROW_IF_FALSE(c, m) if ((c) == false) \
@@ -37,21 +42,19 @@
 	}
 #endif
 
-#include <string>
-#include <vector>
-
 // Exported API functions.
 extern "C" {
 	APICALL void test();
 	APICALL void test2(std::string);
 	// message, file, line, function name
 	APICALL void throw_custom(std::string, std::string, int, std::string);
-	APICALL void expand_bash_tilde(std::string &);
+	APICALL std::string expand_bash_tilde(std::string);
 	APICALL bool ends_with(std::string &, std::string);
 	APICALL bool path_is_extant_dir(std::string);
 	APICALL bool dir_allows_read(std::string);
 	APICALL bool dir_allows_write(std::string);
 	APICALL bool dir_allows_exec(std::string);
+	APICALL Fl_Group *add_tab(void *, const std::string &);
 }
 
 struct PluginHandles {

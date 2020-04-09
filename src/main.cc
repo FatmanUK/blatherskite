@@ -37,7 +37,7 @@ int main(int, char **) {
 	cerr << "DEBUG build" << endl;
 #endif
 	string plugins_dir{XSTR(PLUGINS_DIR)};
-	expand_bash_tilde(plugins_dir);
+	plugins_dir = expand_bash_tilde(plugins_dir);
 #ifndef NDEBUG
 	cerr << "Looking for plugins in: " << plugins_dir << endl;
 #endif
