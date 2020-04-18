@@ -8,15 +8,16 @@ using std::endl;
 
 const string PNAME = "rolodex";
 const string PVERSION = "v0.0.1";
-const string TABNAME = "Contacts";
+const string TABNAME = "C&ontacts";
 
-Fl_Group *tab;
+void *tab{nullptr};
 
-bool start(void *ptr) {
+bool start(void *ui) {
 	cerr << "Loading: " << PNAME << " " << PVERSION << "" << endl;
-	tab = add_tab(ptr, TABNAME);
-	tab->end();
-	test2(PNAME);
+#ifndef NDEBUG
+	cerr << "DEBUG build" << endl;
+#endif
+	tab = create_tab(ui, TABNAME);
 	return true;
 }
 
