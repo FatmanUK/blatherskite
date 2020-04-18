@@ -42,19 +42,36 @@
 	}
 #endif
 
+typedef void (*cb_fn_ptr)(void *, void *);
+
 // Exported API functions.
 extern "C" {
-	APICALL void test();
-	APICALL void test2(std::string);
-	// message, file, line, function name
-	APICALL void throw_custom(std::string, std::string, int, std::string);
+	APICALL void *create_tab(void *, const std::string &);
 	APICALL std::string expand_bash_tilde(std::string);
 	APICALL bool ends_with(std::string &, std::string);
 	APICALL bool path_is_extant_dir(std::string);
+	APICALL void throw_custom(std::string, std::string, int, std::string);
 	APICALL bool dir_allows_read(std::string);
 	APICALL bool dir_allows_write(std::string);
 	APICALL bool dir_allows_exec(std::string);
-	APICALL Fl_Group *add_tab(void *, const std::string &);
+	APICALL void *load_image(const std::string &);
+	// UI
+	APICALL void *add_vpack(void *);
+	APICALL void *add_hpack(void *);
+	APICALL void *add_tree(void *, const std::string &);
+	APICALL void *add_treeitem(void *, void *, void *, const std::string &, void *);
+	APICALL void *get_tree_root(void *);
+/*
+	APICALL void test();
+	APICALL void test2(std::string);
+	// message, file, line, function name
+
+	APICALL void add_button(void *, const std::string &, cb_fn_ptr, const std::string &);
+	APICALL void *add_status_bar(void *);
+	APICALL void *add_list(void *);
+	APICALL void *add_list(void *);
+	APICALL void *add_textbox(void *);
+*/
 }
 
 struct PluginHandles {
